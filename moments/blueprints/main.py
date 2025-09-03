@@ -8,7 +8,7 @@ from moments.decorators import confirm_required, permission_required
 from moments.forms.main import CommentForm, DescriptionForm, TagForm
 from moments.models import Collection, Comment, Follow, Notification, Photo, Tag, User
 from moments.notifications import push_collect_notification, push_comment_notification
-from moments.utils import flash_errors, redirect_back, rename_image, resize_image, validate_image
+from moments.utils import analyze_image, flash_errors, redirect_back, rename_image, resize_image, validate_image
 
 main_bp = Blueprint('main', __name__)
 
@@ -61,7 +61,13 @@ def search():
     if category == 'user':
         pagination = User.query.whooshee_search(q).paginate(page=page, per_page=per_page)
     elif category == 'tag':
-        pagination = Tag.query.whooshee_search(q).paginate(page=page, per_page=per_page)
+        stmt = (
+            select(Photo)
+            .join(Photo.tags)
+            .filter(Tag.name.ilike(f'%{q}%'))
+            .order_by(Photo.created_at.desc())
+        )
+        pagination = db.paginate(stmt, page=page, per_page=per_page)
     else:
         pagination = Photo.query.whooshee_search(q).paginate(page=page, per_page=per_page)
     results = pagination.items
@@ -130,13 +136,31 @@ def upload():
         if not validate_image(f.filename):
             return 'Invalid image.', 400
         filename = rename_image(f.filename)
-        f.save(current_app.config['MOMENTS_UPLOAD_PATH'] / filename)
+        upload_path = current_app.config['MOMENTS_UPLOAD_PATH'] / filename
+        f.save(upload_path)
         filename_s = resize_image(f, filename, current_app.config['MOMENTS_PHOTO_SIZES']['small'])
         filename_m = resize_image(f, filename, current_app.config['MOMENTS_PHOTO_SIZES']['medium'])
+
+        labels, text = analyze_image(upload_path)
+        description = request.form.get('description') or text
+
         photo = Photo(
-            filename=filename, filename_s=filename_s, filename_m=filename_m, author=current_user._get_current_object()
+            description=description,
+            filename=filename,
+            filename_s=filename_s,
+            filename_m=filename_m,
+            author=current_user._get_current_object(),
         )
         db.session.add(photo)
+        db.session.flush()
+
+        for name in labels:
+            tag = db.session.scalar(select(Tag).filter_by(name=name))
+            if tag is None:
+                tag = Tag(name=name)
+                db.session.add(tag)
+            photo.tags.append(tag)
+
         db.session.commit()
     return render_template('main/upload.html')
 

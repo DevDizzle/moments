@@ -8,6 +8,7 @@ import PIL
 from flask import current_app, flash, redirect, request, url_for
 from jwt.exceptions import InvalidTokenError
 from PIL import Image
+from google.cloud import vision
 
 
 def generate_token(user, operation, expiration=3600, **kwargs):
@@ -76,3 +77,21 @@ def flash_errors(form):
     for field, errors in form.errors.items():
         for error in errors:
             flash(f'Error in the {getattr(form, field).label.text} field - {error}')
+
+
+def analyze_image(image_path):
+    """Return labels and detected text for an image using Google Cloud Vision API."""
+    client = vision.ImageAnnotatorClient()
+    with open(image_path, 'rb') as image_file:
+        content = image_file.read()
+    image = vision.Image(content=content)
+
+    label_response = client.label_detection(image=image)
+    labels = [label.description for label in label_response.label_annotations]
+
+    text_response = client.text_detection(image=image)
+    text = ''
+    if text_response.text_annotations:
+        text = ' '.join([t.description for t in text_response.text_annotations])
+
+    return labels, text
