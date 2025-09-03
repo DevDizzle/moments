@@ -170,3 +170,4 @@ uploads/avatars/*
 logs/*
 !logs/.gitkeep
 whooshee
+credentials.json
