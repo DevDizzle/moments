@@ -1,54 +1,98 @@
-# Moments
+# Moments + ML — Alt-Text & Keyword Search
 
-A photo sharing social networking app built with Python and Flask. The example application for the book *[Python Web Development with Flask (2nd edition)](https://helloflask.com/en/book/4)* (《[Flask Web 开发实战（第 2 版）](https://helloflask.com/book/4)》).
+**Course:** COT 6930 — AI & ML in Production (Fall 2025)  
+**Author:** Evan Parra  
+**Final commit:** <REPLACE_WITH_FINAL_COMMIT_URL>
 
-Demo: http://moments.helloflask.com
+This fork adds two ML features to Moments using **Google Cloud Vision**:
 
-![Screenshot](demo.png)
+1) **Automatic Alt-Text** when the uploader leaves the description blank.  
+2) **Keyword Search** using auto-generated tags from Vision labels.
 
-## Installation
+All code-level details live in the LaTeX report; this README is just how to run and verify.
 
-Clone the repo:
+---
 
+## Live Demo (optional)
+- Cloud Run URL: **<ADD_URL_IF_AVAILABLE>**
+
+---
+
+## Quick Start (PDM only)
+
+This project uses **PDM** and a pinned lockfile. Do **not** use `pip install`.
+
+### Clone
 ```
-$ git clone https://github.com/greyli/moments
-$ cd moments
-```
-
-Install dependencies with [PDM](https://pdm.fming.dev):
-
-```
-$ pdm install
-```
-
-> [!TIP]
-> If you don't have PDM installed, you can create a virtual environment with `venv` and install dependencies with `pip install -r requirements.txt`.
-
-To initialize the app, run the `flask init-app` command:
-
-```
-$ pdm run flask init-app
+git clone https://github.com/DevDizzle/moments
+cd moments
 ```
 
-If you just want to try it out, generate fake data with `flask lorem` command then run the app:
+### Install
+```
+pdm install
+```
+
+### Configure environment (via `.env`)
+Create a local `.env` (not committed) with:
 
 ```
-$ pdm run flask lorem
+GOOGLE_APPLICATION_CREDENTIALS=path/to/vision-key.json
+FLASK_APP=moments
+FLASK_ENV=development
+UPLOAD_FOLDER=static/uploads
+VISION_LABEL_SCORE_THRESHOLD=0.70
 ```
 
-It will create a test account:
+- The JSON key is **present locally** but **not committed**.
+- `.env` is ignored by git.
 
-* email: `admin@helloflask.com`
-* password: `moments`
+### Initialize & run
+```
+pdm run flask init-app
+pdm run flask lorem      # optional demo data
+pdm run flask run        # http://127.0.0.1:5000
+```
 
-Now you can run the app:
+---
+
+## Verify (Quick Path)
+
+1) Upload an image **without** a description → check the gallery/detail HTML: the `<img>` has a real `alt` attribute.  
+2) Search a detected label (e.g., `/search?q=dog`) → matching photos appear.  
+3) As the photo owner, remove a tag you don’t want → mitigation works.  
+4) Confirm no secrets in git: `.gitignore` includes `.env` and key filename patterns.
+
+---
+
+## Evidence Image
+
+For grading, I used this photo (man standing next to shark jaws). Commit it at repo root:
 
 ```
-$ pdm run flask run
-* Running on http://127.0.0.1:5000/
+shark-jaws.png
 ```
+
+It renders here:
+
+![Shark Jaws Demo](shark-jaws.png)
+
+---
+
+## Documentation
+
+- Full technical write-up (design, risks, production plan, and code snippets): **see LaTeX report** at `docs/report.pdf` (or your Overleaf export path).
+
+---
+
+## Repo Hygiene
+
+- No credentials are committed.  
+- `.gitignore` excludes `.env` and typical key filenames.  
+- Any service account key is referenced via `GOOGLE_APPLICATION_CREDENTIALS` and kept outside version control.
+
+---
 
 ## License
 
-This project is licensed under the MIT License (see the
-[LICENSE](LICENSE) file for details).
+MIT (see `LICENSE`).

@@ -142,7 +142,17 @@ def upload():
         filename_m = resize_image(f, filename, current_app.config['MOMENTS_PHOTO_SIZES']['medium'])
 
         labels, text = analyze_image(upload_path)
-        description = request.form.get('description') or text
+        
+        # Get the description from the form
+        description = request.form.get('description')
+
+        # If the user did not provide a description AND we have labels from the API...
+        if not description and labels:
+            # ...create a simple description from the first 5 labels.
+            description = 'A photo of ' + ', '.join(labels[:5])
+        # If there's still no description, fall back to the detected text (OCR)
+        elif not description:
+            description = text
 
         photo = Photo(
             description=description,
